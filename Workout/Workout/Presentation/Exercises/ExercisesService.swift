@@ -9,7 +9,6 @@ import Foundation
 
 protocol ExercisesServiceProtocol {
     func getExercises(completion: @escaping (Result<Exercises?, Error>) -> Void)
-    func getExercisesImage(exerciseId: Int, completion: @escaping (Result<Data?, Error>) -> Void)
 }
 
 final class ExercisesService {
@@ -33,16 +32,5 @@ extension ExercisesService: ExercisesServiceProtocol {
                 completion(.failure(error))
             }
         }
-    }
-
-    func getExercisesImage(exerciseId: Int, completion: @escaping (Result<Data?, Error>) -> Void) {
-        _ = networkManager.request(ExercisesEndPoint.getExercisesImage(exerciseId: exerciseId), completion: { result in
-            switch result {
-            case .success(let data):
-                completion(.success(data))
-            case .failure(let error):
-                completion(.failure(error))
-            }
-        })
     }
 }
