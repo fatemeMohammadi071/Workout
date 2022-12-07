@@ -16,21 +16,20 @@ In order to explain how I think about developing an application, let me begin wi
 
 
 ## What should we do in ConversionAPI file
-As follow talk about the different part of ConversionAPI file:
+I am going to address some points bellow:
 
  - Develop a protocol for ConversionAPI. When we want to write unit tests, we need mocks, so this protocol allows us to write mocks easily. However, we should not inject ConversionAPI directly into another layer like the presenter. As a result of dependency injection. It is not a good idea for the presenter layer to be dependent on the data layer and vice versa. we need a bridge between the data layer and the presenter layer that uses the domain layer for this state. It makes the architect clean.
- It is better to inject a network manager into the ConversionAPI instead of using SessionManager directly in it. because of:
+  Instead of using SessionManager directly in the ConversionAPI, it would be better to inject a network manager.
  
-    - Instead of importing Alamofire into the whole API file, It just imports into the NetworkManager, so whenever we want to update the Alamofire package, we do not need to update the whole API files.
-    - It is better to use a network manager to handle all things that are related to the network, for example, error handling.
-        
+ - Rather than importing Alamofire into the whole APIs file, it only imports into the NetworkManager, so whenever we update Alamofire, we don't need to update the whole APIs file.
+
+ - All network-related things, such as error handling, are better handled by a NetworkManager.
  
-  - It is better to have less dependency on the libraries because of updating issues and handling the issues that may be in the libraries.
-if PovioKitNetworking is developed by the developer's company It's great, but if not, It is better to have less dependency on the libraries.
+  - Less dependency on libraries is better because of updating issues and handling library issues.if PovioKitNetworking is developed by the developer's company It's great, otherwise less dependency on libraries is better.
 
  - Using ```async throws String``` instead of ```async -> Result<String, AFError>```
 
- - Use RequestProtocol which is implemented as below for requests instead of defining base_url, headers, Methode,... into the API files. we can consider an Endpoint for each service that conforms to this protocol and we can define the relative path and the other requirements of an API call into this endpoint and inject it into the service.
+ - Instead of defining base_url, headers, methods, etc., into API files, use RequestProtocol which is implemented as follows We can consider an Endpoint for each service that conforms to this protocol and determine the relative path and the other requirements of an API call into this endpoint and inject it into the service.
 
  
   - instead of handling tokens in this API call, we should do it in NetworkManager. we need to refresh the token after unauthorizing and every service should not handle this. It's better to handle this situation just once, because of the boilerplate in the code.
@@ -39,9 +38,9 @@ if PovioKitNetworking is developed by the developer's company It's great, but if
 
  - ```progressreport```  is better to rename ```progressReport```
  
- - conversion function dose not obey from single responsibilty.   
+ - conversion function does not obey single responsibility.   
     
- - It is not obey from open/close prisinple and we need to handle the different formats that will add in the future.
+ - This part of code does not to obey from open/close principle and we need to handle the different formats that will add in the future.
     ```swift
     if let imageData = provisioningModel.mPhoto {
       // check image type
