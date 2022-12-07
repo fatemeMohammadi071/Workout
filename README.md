@@ -4,18 +4,20 @@
 
 In order to explain how I think about developing an application, let me begin with how I think about the whole process. In my opinion, it is better to consider different layers for different parts of the application (data, network, domain, UI, etc.), and this part of the code should be split into two parts (NetworkManager and Data). These layers are explained as follows ( I implemented the NetworkManager and attached it to the email): 
 
-NetworkManager:  
- - Contains generic network requests
+- NetworkManager:  
+  - Contains generic network requests
 
-Data: 
- - It contains repositories, Data stores. - It is responsible for getting data from data sources whether it is local (DB) or remote (API).
- - Business logic doesn’t know where the data come from. just tell the repository that it needs data and the repo decides where to fetch them.\
+- Data: 
+   - It contains repositories, Data stores. - It is responsible for getting data from data sources whether it is local (DB) or remote (API).
+   - Business logic doesn’t know where the data come from. just tell the repository that it needs data and the repo decides where to fetch them.\
  
  
  The different layers do not depend on each other, so writing tests is easy. Meanwhile, it's so easy to use one layer for another project when needed. Furthermore, layering the different parts of the application makes it easy for us to modulate the application whenever we want.
 
 
 ## What should we do in ConversionAPI file
+As follow talk about the different part of ConversionAPI file:
+
  - Develop a protocol for ConversionAPI. When we want to write unit tests, we need mocks, so this protocol allows us to write mocks easily. However, we should not inject ConversionAPI directly into another layer like the presenter. As a result of dependency injection. It is not a good idea for the presenter layer to be dependent on the data layer and vice versa. we need a bridge between the data layer and the presenter layer that uses the domain layer for this state. It makes the architect clean.
  It is better to inject a network manager into the ConversionAPI instead of using SessionManager directly in it. because of:
  
@@ -35,12 +37,9 @@ if PovioKitNetworking is developed by the developer's company It's great, but if
 
   - it is better to use a configuration file that holds the base_url for different requests and add the variables of base_urls into the info.plist. That it develops in AppConfiguration. In this way, whenever we want to add a new URL to the project or if we want to have a different base_url for release or debug
 
- - progressreport typp, It's better to rename progressReport
+ - ```progressreport```  is better to rename ```progressReport```
  
- - This function dose not obey from single responsibilty:     
-    ```swift
-     func conversion(provisioningModel: ProvisioningModel, progressreport: ProgressHandler?) async -> Result<String, AFError> {
-    ```
+ - conversion function dose not obey from single responsibilty.   
     
  - It is not obey from open/close prisinple and we need to handle the different formats that will add in the future.
     ```swift
@@ -138,13 +137,58 @@ extension RequestProtocol {
 ### NetworkManager
 
 ```swift
-protocol NetworkManagerProtocol {
-    typealias CompletionHandler<T> = ((Result<T?, NetworkError>) -> Void)
+enum NetworkError: Error {
+    case notConnected
+    case cancelled
+    case generic(Error)
+    case parsing(Error)
+    case noResponse
+    case error(statusCode: Int, data: Data?)
+}
 
-    func request<T: RequestProtocol, E: Decodable>(_ request: T,
-                                                   completion: @escaping CompletionHandler<E>)
-    func downloadImage<T: RequestProtocol>(_ request: T,
-                                                   completion: @escaping CompletionHandler<Data>)
+protocol Cancellable {
+    func cancelRequest()
+}
+
+extension URLSessionDataTask: Cancellable {
+    func cancelRequest() {
+        cancel()
+    }
+}
+
+protocol NetworkLayerProtocol {
+    @discardableResult
+    func request(model: RequestProtocol,
+                 completion: @escaping (_ response: Result<Data?, NetworkError>) -> Void) -> Cancellable?
+}
+
+typealias DataTaskResult = Result<Data?, NetworkError>
+
+class NetworkLayer: NetworkLayerProtocol {
+
+    var dataTask: URLSessionDataTask?
+
+    private let sessionManager: NetworkSessionManagerProtocol
+
+    init(sessionManager: NetworkSessionManagerProtocol = NetworkSessionManager()) {
+        self.sessionManager = sessionManager
+    }
+
+    @discardableResult
+    func request(model: RequestProtocol, completion: @escaping (DataTaskResult) -> Void) -> Cancellable? {
+        dataTask?.cancel()
+        guard let url = URL(string: model.baseURL + model.relativePath) else { return nil }
+        var request = URLRequest(url: url)
+        request.httpMethod = model.method.rawValue
+        let dataTask = sessionManager.request(request) { (data,response,error)   in
+            // TODO: Handle response and error
+        }
+        return dataTask
+    }
+
+    private func resolve(error: Error, response: HTTPURLResponse? = nil) -> NetworkError {
+        // TODO: Convert error to custom error
+    }
 }
 ```
 
